@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Groundwater Sensor Fault Detection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#0f172a;color:#e2e8f0}
+.wrap{max-width:1000px;margin:auto;padding:16px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:#94a3b8;font-size:13px;margin-bottom:12px}
+#banner{padding:14px;border-radius:10px;margin:12px 0;background:#475569}
+#banner b{font-size:18px}
+.card{background:#1e293b;border-radius:10px;padding:12px;margin-bottom:12px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{background:#334155;color:#e2e8f0;border:0;border-radius:8px;padding:9px 12px;font-size:14px;cursor:pointer}
+button:hover{background:#475569}
+button.real{background:#1d4ed8}
+button.bad{background:#b45309}
+.alert{border-left:4px solid #475569;padding:8px 10px;margin:8px 0;background:#0f172a;border-radius:6px;font-size:14px}
+.tag{font-size:12px;font-weight:700}
+.chartbox{position:relative;height:300px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Groundwater Sensor Fault Detection</h1>
+  <div class="sub">Real change or faulty sensor? Live simulated readings, checked against neighbors.</div>
+  <div id="banner"><b>Starting...</b></div>
+
+  <div class="card"><div class="chartbox"><canvas id="chart"></canvas></div></div>
+
+  <div class="card">
+    <div class="btns">
+      <button class="bad" onclick="go('drop','S3')">Fault: S3 drops</button>
+      <button class="bad" onclick="go('spike','S2')">Fault: S2 spike</button>
+      <button class="bad" onclick="go('flatline','S4')">Fault: S4 flatline</button>
+      <button class="bad" onclick="go('drift','S1')">Fault: S1 drift</button>
+      <button class="bad" onclick="go('dropout','S5')">Fault: S5 dropout</button>
+      <button class="real" onclick="go('real')">Real drought</button>
+      <button onclick="go('recover')">Recover</button>
+      <button onclick="go('all_flatline')">All sensors flatline</button>
+      <button onclick="go('reset')">Reset</button>
+    </div>
+  </div>
+
+  <div class="card"><b>Alerts and AI explanations</b><div id="alerts"></div></div>
+</div>
+
+<script>
+const COLORS = {NORMAL:"#16a34a", WARMING_UP:"#64748b", SENSOR_FAULT:"#d97706",
+                REAL_EVENT:"#2563eb", UNCERTAIN:"#9333ea"};
+const LABEL = {NORMAL:"All normal", WARMING_UP:"Learning normal behavior...",
+               SENSOR_FAULT:"Possible SENSOR FAULT", REAL_EVENT:"Likely REAL groundwater change",
+               UNCERTAIN:"UNCERTAIN: needs verification"};
+const LINES = ["#38bdf8","#4ade80","#facc15","#f472b6","#a78bfa"];
+let chart;
+
+async function go(name, sensor){
+  await fetch("/api/scenario/" + name + (sensor ? "?sensor=" + sensor : ""), {method:"POST"});
+}
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+async function tick(){
+  let s;
+  try { s = await (await fetch("/api/state")).json(); } catch(e){ return; }
+  const v = s.verdict;
+  if(!v) return;
+
+  const b = document.getElementById("banner");
+  b.style.background = COLORS[v.status] || "#475569";
+  b.innerHTML = "<b>" + (LABEL[v.status] || v.status) + "</b>" +
+    (v.confidence ? " &nbsp; confidence " + Math.round(v.confidence*100) + "%" : "") +
+    "<div style='font-size:14px;margin-top:4px'>" + esc(v.reason) + "</div>";
+
+  const labels = s.history.map(h => h.t);
+  const faulty = Object.keys(v.faulty_sensors || {});
+  if(!chart){
+    chart = new Chart(document.getElementById("chart"), {
+      type:"line",
+      data:{labels, datasets:s.names.map((n,i)=>({label:n, data:[], borderColor:LINES[i%5],
+            pointRadius:0, borderWidth:2, tension:0.2}))},
+      options:{animation:false, maintainAspectRatio:false,
+        scales:{y:{title:{display:true,text:"Water level (m)",color:"#94a3b8"},ticks:{color:"#94a3b8"}},
+                x:{ticks:{color:"#94a3b8",maxTicksLimit:8}}},
+        plugins:{legend:{labels:{color:"#e2e8f0"}}}}
+    });
+  }
+  chart.data.labels = labels;
+  chart.data.datasets.forEach((d,i)=>{
+    const n = s.names[i];
+    d.data = s.history.map(h => h.readings[n]);
+    d.borderWidth = faulty.includes(n) ? 4 : 2;
+    d.borderDash = faulty.includes(n) ? [6,4] : [];
+  });
+  chart.update();
+
+  document.getElementById("alerts").innerHTML = s.alerts.length ? s.alerts.map(a =>
+    "<div class='alert' style='border-color:" + COLORS[a.status] + "'>" +
+    "<span class='tag' style='color:" + COLORS[a.status] + "'>" + a.status +
+    "</span> &nbsp; step " + a.t +
+    (a.faulty.length ? " &nbsp; sensors: " + a.faulty.join(", ") : "") +
+    "<div>" + esc(a.explanation) + "</div></div>").join("")
+    : "<div class='sub'>No alerts yet. Press a scenario button.</div>";
+}
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>
