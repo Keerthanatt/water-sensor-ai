@@ -15,10 +15,13 @@ class Simulator:
         self.drawdown = 0.0
         self.drawdown_target = 0.0
 
-    def inject_fault(self, sensor, kind):
+    def inject_fault(self, sensor, kind, duration=None):
         """kind: spike, flatline, drift, drop, dropout"""
         self.faults[sensor] = {"type": kind, "age": 0,
-                               "duration": DURATIONS[kind]}
+                               "duration": duration or DURATIONS[kind]}
+
+    def clear_faults(self):
+        self.faults = {}
 
     def trigger_real_event(self, depth=3.0):
         """Regional drawdown: ALL sensors fall together."""
@@ -36,7 +39,7 @@ class Simulator:
 
         readings = {}
         for n in self.names:
-            seasonal = 0.8 * math.sin(2 * math.pi * self.t / 200)
+            seasonal = 0.15 * math.sin(2 * math.pi * self.t / 200)
             value = self.base[n] + seasonal - self.drawdown
             value += random.gauss(0, 0.05)
 

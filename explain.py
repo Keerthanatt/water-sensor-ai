@@ -50,6 +50,7 @@ def explain(v):
         text = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
         if text:
             return text
+        print("LLM returned empty text, using template")
     except Exception as e:
         print("LLM failed, using template:", e)
     return template_explanation(v)

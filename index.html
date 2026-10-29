@@ -44,7 +44,7 @@ button.bad{background:#b45309}
       <button onclick="go('reset')">Reset</button>
     </div>
   </div>
-
+  
   <div class="card"><b>Alerts and AI explanations</b><div id="alerts"></div></div>
 </div>
 
@@ -56,6 +56,8 @@ const LABEL = {NORMAL:"All normal", WARMING_UP:"Learning normal behavior...",
                UNCERTAIN:"UNCERTAIN: needs verification"};
 const LINES = ["#38bdf8","#4ade80","#facc15","#f472b6","#a78bfa"];
 let chart;
+const POS = [[70,60],[190,40],[320,70],[120,150],[270,150]];
+
 
 async function go(name, sensor){
   await fetch("/api/scenario/" + name + (sensor ? "?sensor=" + sensor : ""), {method:"POST"});
@@ -68,7 +70,6 @@ async function tick(){
   try { s = await (await fetch("/api/state")).json(); } catch(e){ return; }
   const v = s.verdict;
   if(!v) return;
-
   const b = document.getElementById("banner");
   b.style.background = COLORS[v.status] || "#475569";
   b.innerHTML = "<b>" + (LABEL[v.status] || v.status) + "</b>" +
