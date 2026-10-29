@@ -12,7 +12,7 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (problem statement PS-07).
 | **Members** | Akshathaa P K, Keerthana T, Harini P |
 | **College** | PSG Institute of Technology and Applied Research |
 | **Repository** | https://github.com/Keerthanatt/water-sensor-ai |
-| **Demo video** | Coming soon |
+| **Demo video** | (https://youtu.be/e2f_XPkTyzA) |
 
 ## The problem
 Groundwater monitoring depends on remote sensors. A sudden drop in a
