@@ -4,7 +4,7 @@ An AI agent that decides whether a change in groundwater readings is a
 **real event** or a **sensor fault**, and explains its verdict in plain
 language using an NVIDIA Nemotron model.
 
-Built for the **Nebius x NVIDIA Global AI Hackathon** (problem statement PS-07).
+Built for the **Nebius x NVIDIA Global AI Hackathon** 
 
 | | |
 |---|---|
